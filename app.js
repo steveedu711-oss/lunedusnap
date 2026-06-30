@@ -495,6 +495,39 @@ async function performDriveUpload(format) {
     overlayMsg.textContent = `取得資料夾「${folderName}」...`;
     const folderId = await getOrCreateDriveFolder(folderName);
 
+    if (format === 'all') {
+      // PDF
+      if (!window.jspdf) { showToast('PDF 模組未載入'); hideOverlay(); return; }
+      const { jsPDF } = window.jspdf;
+      const pdfDoc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const allPages = [];
+      for (let i = 0; i < state.photos.length; i += 3) allPages.push(state.photos.slice(i, i + 3));
+      for (let pi = 0; pi < allPages.length; pi++) {
+        if (pi > 0) pdfDoc.addPage();
+        overlayMsg.textContent = `PDF 第 ${pi + 1} / ${allPages.length} 頁...`;
+        const pageCanvas = await renderPageToCanvas(school, title, allPages[pi]);
+        pdfDoc.addImage(pageCanvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
+      }
+      overlayMsg.textContent = '上傳 PDF...';
+      await uploadFileToDrive(pdfDoc.output('blob'), `${title}.pdf`, 'application/pdf', folderId);
+      // 文件
+      overlayMsg.textContent = '產生文件...';
+      const allWordDoc = await buildDoc(school, title);
+      const allDocxBlob = await docx.Packer.toBlob(allWordDoc);
+      overlayMsg.textContent = '上傳文件...';
+      await uploadFileToDrive(allDocxBlob, `${title}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', folderId);
+      // 圖片
+      for (let pi = 0; pi < allPages.length; pi++) {
+        overlayMsg.textContent = `上傳圖片 ${pi + 1} / ${allPages.length}...`;
+        const pageCanvas = await renderPageToCanvas(school, title, allPages[pi]);
+        const blob = await new Promise(res => pageCanvas.toBlob(res, 'image/png'));
+        const fileName = allPages.length === 1 ? `${title}.png` : `${title}_p${String(pi + 1).padStart(2, '0')}.png`;
+        await uploadFileToDrive(blob, fileName, 'image/png', folderId);
+      }
+      showToast(`全部已上傳到「${folderName}」`, 'ok');
+      return;
+    }
+
     if (format === 'pdf') {
       if (!window.jspdf) { showToast('PDF 模組未載入'); hideOverlay(); return; }
       const { jsPDF } = window.jspdf;

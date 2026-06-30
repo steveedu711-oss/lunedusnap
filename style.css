@@ -594,6 +594,9 @@ body::after {
   -webkit-tap-highlight-color: transparent;
 }
 .pick-btn:hover { background: rgba(124,77,255,.18); color: #fff; }
+.pick-all { color: #a78bff; border-bottom: 1px solid rgba(255,255,255,.08); border-radius: 8px 8px 0 0; }
+.pick-all:hover { background: rgba(124,77,255,.28); }
+.pick-divider { height: 1px; background: rgba(255,255,255,.07); margin: 2px 0; }
 
 .action-note {
   font-size: 0.8rem;
