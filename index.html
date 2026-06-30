@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="LunEduSnap">
+  <title>LunEduSnap 校園照片系統</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo-wrap">
+        <img src="logo.png" alt="鴻綸科技 Google for Education Partner" class="site-logo">
+        <span class="header-copy">© 2026 鴻綸科技・Steve Shen（Jul. 2026）</span>
+      </div>
+      <button class="help-btn" id="helpBtn" aria-label="使用說明">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        使用說明
+      </button>
+    </div>
+  </header>
+
+  <div class="page-wrap">
+
+    <div class="app-hero">
+      <div class="hero-accent"></div>
+      <div class="hero-text">
+        <h1>LunEduSnap 校園照片系統</h1>
+        <p>自動排版 A4 表格・每頁 3 張照片・一鍵下載文件</p>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <section class="card">
+      <div class="card-label">文件設定</div>
+      <div class="settings-row">
+        <div class="field">
+          <label for="schoolName">學校名稱</label>
+          <input type="text" id="schoolName" placeholder="例：台南市○○高中" autocomplete="organization">
+          <span class="field-note">顯示於文件頁首</span>
+        </div>
+        <div class="field">
+          <label for="formTitle">下載檔名</label>
+          <input type="text" id="formTitle" value="活動照片紀錄">
+          <span class="field-note">同時作為表單標題</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Photo section -->
+    <section class="card">
+      <div class="photo-hd">
+        <div class="card-label" style="margin-bottom:0">照片列表</div>
+        <span class="count-pill" id="photoCount">0 張</span>
+      </div>
+
+      <div class="toolbar">
+        <label class="btn btn-add" for="photoInput">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          新增照片
+          <input type="file" id="photoInput" accept="image/*" multiple hidden>
+        </label>
+        <label class="btn btn-camera" for="cameraInput">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          手機拍照
+          <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+        </label>
+        <button class="btn btn-ghost" id="clearBtn" style="display:none">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          清除
+        </button>
+      </div>
+
+      <div id="emptyState" class="empty-state">
+        <span class="empty-icon">🖼️</span>
+        <strong>尚無照片</strong>
+        <span>點選「新增照片」上傳圖片<br>支援 JPG／PNG，可一次多選<br>手機可直接拍照</span>
+      </div>
+
+      <div id="photoList"></div>
+    </section>
+
+  </div>
+
+  <!-- Bottom action bar -->
+  <footer class="action-bar">
+    <div class="action-wrap">
+      <div class="action-btns">
+        <button class="btn-main btn-word" id="genWordBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          文件
+        </button>
+        <button class="btn-main btn-pdf" id="genPdfBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          PDF
+        </button>
+        <button class="btn-main btn-img" id="genImgBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          圖片
+        </button>
+      </div>
+      <span class="action-note">可下載 DOCX 文件、PDF，或每頁轉為圖片</span>
+    </div>
+  </footer>
+
+  <!-- Help modal -->
+  <div class="modal-wrap" id="helpModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-hd">
+        <span>LunEduSnap 使用說明</span>
+        <button class="close-btn" id="closeHelp" aria-label="關閉">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-bd">
+        <div class="step"><div class="step-n">1</div><div><strong>填入學校名稱與下載檔名</strong><p>學校名稱顯示於 Word 頁首；下載檔名決定 .docx 檔名及表單標題。</p></div></div>
+        <div class="step"><div class="step-n">2</div><div><strong>新增照片</strong><p>可一次多選，手機支援直接拍照。日期自動從 EXIF 讀取。</p></div></div>
+        <div class="step"><div class="step-n">3</div><div><strong>填寫各欄位</strong><p>為每張照片填入地點與說明（日期可手動修改）。</p></div></div>
+        <div class="step"><div class="step-n">4</div><div><strong>下載文件</strong><p>可選擇下載 DOCX 文件、PDF，或每頁轉為圖片（PNG）下載。</p></div></div>
+        <div class="notice">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          照片在瀏覽器本機處理，不會上傳至任何伺服器。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay -->
+  <div class="overlay" id="overlay" hidden>
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <p id="overlayMsg">處理中，請稍候...</p>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="https://unpkg.com/exifr@7.1.3/dist/lite.umd.js"></script>
+  <script src="https://unpkg.com/docx@7.8.2/build/index.js"></script>
+  <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
