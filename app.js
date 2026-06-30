@@ -22,6 +22,7 @@ clearBtn.addEventListener('click', clearAll);
 genWordBtn.addEventListener('click', generateWord);
 document.getElementById('genPdfBtn').addEventListener('click', generatePDF);
 document.getElementById('genImgBtn').addEventListener('click', downloadImages);
+document.getElementById('driveBtn').addEventListener('click', driveUploadFlow);
 document.getElementById('helpBtn').addEventListener('click',  () => { helpModal.hidden = false; });
 document.getElementById('closeHelp').addEventListener('click', () => { helpModal.hidden = true; });
 helpModal.addEventListener('click', e => { if (e.target === helpModal) helpModal.hidden = true; });
@@ -438,6 +439,78 @@ async function downloadImages() {
   } finally {
     hideOverlay();
   }
+}
+
+// ── Google Drive upload ────────────────────────────────────────
+const DRIVE_CLIENT_ID = '1001894711281-oq75uqan9c8dev2miugon3s1cgt8i97g.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+let driveTokenClient = null;
+let driveAccessToken = null;
+
+function initDriveClient() {
+  driveTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: DRIVE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: async (resp) => {
+      if (resp.error) { showToast('授權失敗：' + resp.error, 'err'); hideOverlay(); return; }
+      driveAccessToken = resp.access_token;
+      await performDriveUpload();
+    },
+  });
+}
+
+async function driveUploadFlow() {
+  if (!state.photos.length) { showToast('請先新增照片'); return; }
+  if (!window.google?.accounts?.oauth2) { showToast('Google 模組未載入，請重新整理頁面'); return; }
+  showOverlay('請完成 Google 授權...');
+  try {
+    if (!driveTokenClient) initDriveClient();
+    driveTokenClient.requestAccessToken();
+  } catch (err) {
+    showToast('啟動授權失敗：' + err.message, 'err');
+    hideOverlay();
+  }
+}
+
+async function performDriveUpload() {
+  const school = document.getElementById('schoolName').value.trim() || '學校名稱';
+  const title  = document.getElementById('formTitle').value.trim() || '照片紀錄';
+  try {
+    if (!window.jspdf) { showToast('PDF 模組未載入'); hideOverlay(); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const pages = [];
+    for (let i = 0; i < state.photos.length; i += 3) pages.push(state.photos.slice(i, i + 3));
+    for (let pi = 0; pi < pages.length; pi++) {
+      if (pi > 0) doc.addPage();
+      overlayMsg.textContent = `PDF 第 ${pi + 1} / ${pages.length} 頁...`;
+      const pageCanvas = await renderPageToCanvas(school, title, pages[pi]);
+      doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
+    }
+    overlayMsg.textContent = '上傳到 Google Drive...';
+    const pdfBlob = doc.output('blob');
+    const result = await uploadFileToDrive(pdfBlob, `${title}.pdf`, 'application/pdf');
+    showToast(`已上傳：${result.name}`, 'ok');
+  } catch (err) {
+    console.error(err);
+    showToast('上傳失敗：' + err.message, 'err');
+  } finally {
+    hideOverlay();
+  }
+}
+
+async function uploadFileToDrive(blob, fileName, mimeType) {
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify({ name: fileName, mimeType })], { type: 'application/json' }));
+  form.append('file', blob);
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${driveAccessToken}` },
+    body: form,
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`HTTP ${res.status}: ${t}`); }
+  return res.json();
 }
 
 // ── UI helpers ────────────────────────────────────────────────

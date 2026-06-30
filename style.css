@@ -557,6 +557,8 @@ body::after {
 .btn-pdf:hover  { box-shadow: 0 4px 20px rgba(234,67,53,.55), inset 0 1px 0 rgba(255,255,255,.2); }
 .btn-img  { background: linear-gradient(135deg, #1a7a3c, #34A853); box-shadow: 0 2px 12px rgba(52,168,83,.4), inset 0 1px 0 rgba(255,255,255,.2); }
 .btn-img:hover  { box-shadow: 0 4px 20px rgba(52,168,83,.55), inset 0 1px 0 rgba(255,255,255,.2); }
+.btn-drive { background: linear-gradient(135deg, #4a0080, #7c4dff); box-shadow: 0 2px 12px rgba(124,77,255,.4), inset 0 1px 0 rgba(255,255,255,.2); }
+.btn-drive:hover { box-shadow: 0 4px 20px rgba(124,77,255,.55), inset 0 1px 0 rgba(255,255,255,.2); }
 
 .action-note {
   font-size: 0.8rem;
