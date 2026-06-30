@@ -491,10 +491,18 @@ async function performDriveUpload() {
     }
     overlayMsg.textContent = `取得資料夾「${folderName}」...`;
     const folderId = await getOrCreateDriveFolder(folderName);
-    overlayMsg.textContent = '上傳到 Google Drive...';
+
+    overlayMsg.textContent = '上傳 PDF...';
     const pdfBlob = doc.output('blob');
-    const result = await uploadFileToDrive(pdfBlob, `${title}.pdf`, 'application/pdf', folderId);
-    showToast(`已上傳到「${folderName}」：${result.name}`, 'ok');
+    await uploadFileToDrive(pdfBlob, `${title}.pdf`, 'application/pdf', folderId);
+
+    overlayMsg.textContent = '產生 DOCX...';
+    const wordDoc = await buildDoc(school, title);
+    const docxBlob = await docx.Packer.toBlob(wordDoc);
+    overlayMsg.textContent = '上傳 DOCX...';
+    await uploadFileToDrive(docxBlob, `${title}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', folderId);
+
+    showToast(`PDF + DOCX 已上傳到「${folderName}」`, 'ok');
   } catch (err) {
     console.error(err);
     showToast('上傳失敗：' + err.message, 'err');
