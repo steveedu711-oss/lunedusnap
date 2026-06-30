@@ -19,10 +19,9 @@ const helpModal   = document.getElementById('helpModal');
 photoInput.addEventListener('change', handleFiles);
 document.getElementById('cameraInput').addEventListener('change', handleFiles);
 clearBtn.addEventListener('click', clearAll);
-genWordBtn.addEventListener('click', generateWord);
-document.getElementById('genPdfBtn').addEventListener('click', generatePDF);
-document.getElementById('genImgBtn').addEventListener('click', downloadImages);
-document.getElementById('driveBtn').addEventListener('click', driveUploadFlow);
+genWordBtn.addEventListener('click', () => driveUploadFlow('docx'));
+document.getElementById('genPdfBtn').addEventListener('click', () => driveUploadFlow('pdf'));
+document.getElementById('genImgBtn').addEventListener('click', () => driveUploadFlow('img'));
 document.getElementById('helpBtn').addEventListener('click',  () => { helpModal.hidden = false; });
 document.getElementById('closeHelp').addEventListener('click', () => { helpModal.hidden = true; });
 helpModal.addEventListener('click', e => { if (e.target === helpModal) helpModal.hidden = true; });
@@ -447,6 +446,7 @@ const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
 let driveTokenClient = null;
 let driveAccessToken = null;
+let pendingFormat = null;
 
 function initDriveClient() {
   driveTokenClient = google.accounts.oauth2.initTokenClient({
@@ -455,14 +455,15 @@ function initDriveClient() {
     callback: async (resp) => {
       if (resp.error) { showToast('授權失敗：' + resp.error, 'err'); hideOverlay(); return; }
       driveAccessToken = resp.access_token;
-      await performDriveUpload();
+      await performDriveUpload(pendingFormat);
     },
   });
 }
 
-async function driveUploadFlow() {
+async function driveUploadFlow(format) {
   if (!state.photos.length) { showToast('請先新增照片'); return; }
   if (!window.google?.accounts?.oauth2) { showToast('Google 模組未載入，請重新整理頁面'); return; }
+  pendingFormat = format;
   showOverlay('請完成 Google 授權...');
   try {
     if (!driveTokenClient) initDriveClient();
@@ -473,36 +474,50 @@ async function driveUploadFlow() {
   }
 }
 
-async function performDriveUpload() {
+async function performDriveUpload(format) {
   const school     = document.getElementById('schoolName').value.trim() || '學校名稱';
   const title      = document.getElementById('formTitle').value.trim() || '照片紀錄';
   const folderName = document.getElementById('driveFolder').value.trim() || 'LunEduSnap';
   try {
-    if (!window.jspdf) { showToast('PDF 模組未載入'); hideOverlay(); return; }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-    const pages = [];
-    for (let i = 0; i < state.photos.length; i += 3) pages.push(state.photos.slice(i, i + 3));
-    for (let pi = 0; pi < pages.length; pi++) {
-      if (pi > 0) doc.addPage();
-      overlayMsg.textContent = `PDF 第 ${pi + 1} / ${pages.length} 頁...`;
-      const pageCanvas = await renderPageToCanvas(school, title, pages[pi]);
-      doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
-    }
     overlayMsg.textContent = `取得資料夾「${folderName}」...`;
     const folderId = await getOrCreateDriveFolder(folderName);
 
-    overlayMsg.textContent = '上傳 PDF...';
-    const pdfBlob = doc.output('blob');
-    await uploadFileToDrive(pdfBlob, `${title}.pdf`, 'application/pdf', folderId);
+    if (format === 'pdf') {
+      if (!window.jspdf) { showToast('PDF 模組未載入'); hideOverlay(); return; }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const pages = [];
+      for (let i = 0; i < state.photos.length; i += 3) pages.push(state.photos.slice(i, i + 3));
+      for (let pi = 0; pi < pages.length; pi++) {
+        if (pi > 0) doc.addPage();
+        overlayMsg.textContent = `PDF 第 ${pi + 1} / ${pages.length} 頁...`;
+        const pageCanvas = await renderPageToCanvas(school, title, pages[pi]);
+        doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
+      }
+      overlayMsg.textContent = '上傳 PDF...';
+      await uploadFileToDrive(doc.output('blob'), `${title}.pdf`, 'application/pdf', folderId);
+      showToast(`PDF 已上傳到「${folderName}」`, 'ok');
 
-    overlayMsg.textContent = '產生 DOCX...';
-    const wordDoc = await buildDoc(school, title);
-    const docxBlob = await docx.Packer.toBlob(wordDoc);
-    overlayMsg.textContent = '上傳 DOCX...';
-    await uploadFileToDrive(docxBlob, `${title}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', folderId);
+    } else if (format === 'docx') {
+      overlayMsg.textContent = '產生文件...';
+      const wordDoc = await buildDoc(school, title);
+      const docxBlob = await docx.Packer.toBlob(wordDoc);
+      overlayMsg.textContent = '上傳文件...';
+      await uploadFileToDrive(docxBlob, `${title}.docx`, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', folderId);
+      showToast(`文件已上傳到「${folderName}」`, 'ok');
 
-    showToast(`PDF + DOCX 已上傳到「${folderName}」`, 'ok');
+    } else if (format === 'img') {
+      const pages = [];
+      for (let i = 0; i < state.photos.length; i += 3) pages.push(state.photos.slice(i, i + 3));
+      for (let pi = 0; pi < pages.length; pi++) {
+        overlayMsg.textContent = `上傳圖片 ${pi + 1} / ${pages.length}...`;
+        const pageCanvas = await renderPageToCanvas(school, title, pages[pi]);
+        const blob = await new Promise(res => pageCanvas.toBlob(res, 'image/png'));
+        const fileName = pages.length === 1 ? `${title}.png` : `${title}_p${String(pi + 1).padStart(2, '0')}.png`;
+        await uploadFileToDrive(blob, fileName, 'image/png', folderId);
+      }
+      showToast(`圖片已上傳到「${folderName}」`, 'ok');
+    }
   } catch (err) {
     console.error(err);
     showToast('上傳失敗：' + err.message, 'err');

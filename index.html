@@ -98,22 +98,18 @@
       <div class="action-btns">
         <button class="btn-main btn-word" id="genWordBtn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          文件
+          上傳文件
         </button>
         <button class="btn-main btn-pdf" id="genPdfBtn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-          PDF
+          上傳 PDF
         </button>
         <button class="btn-main btn-img" id="genImgBtn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-          圖片
-        </button>
-        <button class="btn-main btn-drive" id="driveBtn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
-          Drive
+          上傳圖片
         </button>
       </div>
-      <span class="action-note">可下載 DOCX 文件、PDF、圖片，或上傳 PDF 至 Google Drive</span>
+      <span class="action-note">上傳至 Google Drive・需 Google 帳號授權</span>
     </div>
   </footer>
 
@@ -127,13 +123,14 @@
         </button>
       </div>
       <div class="modal-bd">
-        <div class="step"><div class="step-n">1</div><div><strong>填入學校名稱與下載檔名</strong><p>學校名稱顯示於 Word 頁首；下載檔名決定 .docx 檔名及表單標題。</p></div></div>
-        <div class="step"><div class="step-n">2</div><div><strong>新增照片</strong><p>可一次多選，手機支援直接拍照。日期自動從 EXIF 讀取。</p></div></div>
-        <div class="step"><div class="step-n">3</div><div><strong>填寫各欄位</strong><p>為每張照片填入地點與說明（日期可手動修改）。</p></div></div>
-        <div class="step"><div class="step-n">4</div><div><strong>下載文件</strong><p>可選擇下載 DOCX 文件、PDF，或每頁轉為圖片（PNG）下載。</p></div></div>
+        <div class="step"><div class="step-n">1</div><div><strong>填入基本資料</strong><p>學校名稱：顯示於表單頁首。<br>表單標題：同時作為上傳至 Google Drive 的檔案名稱。<br>Drive 資料夾：指定上傳的目的地資料夾，預設為「LunEduSnap」，資料夾不存在時自動建立。</p></div></div>
+        <div class="step"><div class="step-n">2</div><div><strong>新增照片</strong><p>點「新增照片」可一次多選圖片（JPG／PNG）；手機用戶可點「手機拍照」直接啟動相機。日期會自動從照片的 EXIF 資訊讀取，無 EXIF 則使用檔案修改日期。</p></div></div>
+        <div class="step"><div class="step-n">3</div><div><strong>填寫各欄位</strong><p>為每張照片填入地點與說明，日期可手動修改。每頁排列 3 張照片，多張時自動分頁。</p></div></div>
+        <div class="step"><div class="step-n">4</div><div><strong>選擇格式上傳至 Google Drive</strong><p>・<strong>上傳文件</strong>：產生文件格式（.docx），可在 Google Drive 中開啟與編輯。<br>・<strong>上傳 PDF</strong>：固定版面，適合列印與正式歸檔。<br>・<strong>上傳圖片</strong>：每頁轉為 PNG 圖片，多頁時分別以獨立檔案上傳。</p></div></div>
+        <div class="step"><div class="step-n">5</div><div><strong>Google 帳號授權</strong><p>首次使用時會彈出 Google 登入視窗，請以有權限的 Google 帳號授權。<br>若出現「此應用程式未經驗證」警告，請點「進階」→「前往 LunEduSnap（不安全）」繼續。<br>此功能需申請帳號授權，請聯絡系統管理員取得使用權限。</p></div></div>
         <div class="notice">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          照片在瀏覽器本機處理，不會上傳至任何伺服器。
+          照片在瀏覽器本機處理，不會上傳至本系統伺服器，僅上傳至您授權的 Google Drive。
         </div>
       </div>
     </div>
