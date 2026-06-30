@@ -474,8 +474,9 @@ async function driveUploadFlow() {
 }
 
 async function performDriveUpload() {
-  const school = document.getElementById('schoolName').value.trim() || '學校名稱';
-  const title  = document.getElementById('formTitle').value.trim() || '照片紀錄';
+  const school     = document.getElementById('schoolName').value.trim() || '學校名稱';
+  const title      = document.getElementById('formTitle').value.trim() || '照片紀錄';
+  const folderName = document.getElementById('driveFolder').value.trim() || 'LunEduSnap';
   try {
     if (!window.jspdf) { showToast('PDF 模組未載入'); hideOverlay(); return; }
     const { jsPDF } = window.jspdf;
@@ -488,10 +489,12 @@ async function performDriveUpload() {
       const pageCanvas = await renderPageToCanvas(school, title, pages[pi]);
       doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
     }
+    overlayMsg.textContent = `取得資料夾「${folderName}」...`;
+    const folderId = await getOrCreateDriveFolder(folderName);
     overlayMsg.textContent = '上傳到 Google Drive...';
     const pdfBlob = doc.output('blob');
-    const result = await uploadFileToDrive(pdfBlob, `${title}.pdf`, 'application/pdf');
-    showToast(`已上傳：${result.name}`, 'ok');
+    const result = await uploadFileToDrive(pdfBlob, `${title}.pdf`, 'application/pdf', folderId);
+    showToast(`已上傳到「${folderName}」：${result.name}`, 'ok');
   } catch (err) {
     console.error(err);
     showToast('上傳失敗：' + err.message, 'err');
@@ -500,9 +503,29 @@ async function performDriveUpload() {
   }
 }
 
-async function uploadFileToDrive(blob, fileName, mimeType) {
+async function getOrCreateDriveFolder(name) {
+  const q = encodeURIComponent(`name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`, {
+    headers: { Authorization: `Bearer ${driveAccessToken}` },
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`查詢資料夾失敗 ${res.status}: ${t}`); }
+  const data = await res.json();
+  if (data.files?.length) return data.files[0].id;
+
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${driveAccessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder' }),
+  });
+  if (!createRes.ok) { const t = await createRes.text(); throw new Error(`建立資料夾失敗 ${createRes.status}: ${t}`); }
+  const folder = await createRes.json();
+  return folder.id;
+}
+
+async function uploadFileToDrive(blob, fileName, mimeType, folderId) {
+  const metadata = { name: fileName, mimeType, ...(folderId ? { parents: [folderId] } : {}) };
   const form = new FormData();
-  form.append('metadata', new Blob([JSON.stringify({ name: fileName, mimeType })], { type: 'application/json' }));
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
   form.append('file', blob);
   const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
     method: 'POST',
