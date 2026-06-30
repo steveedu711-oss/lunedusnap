@@ -19,9 +19,22 @@ const helpModal   = document.getElementById('helpModal');
 photoInput.addEventListener('change', handleFiles);
 document.getElementById('cameraInput').addEventListener('change', handleFiles);
 clearBtn.addEventListener('click', clearAll);
-genWordBtn.addEventListener('click', () => driveUploadFlow('docx'));
-document.getElementById('genPdfBtn').addEventListener('click', () => driveUploadFlow('pdf'));
-document.getElementById('genImgBtn').addEventListener('click', () => driveUploadFlow('img'));
+genWordBtn.addEventListener('click', generateWord);
+document.getElementById('genPdfBtn').addEventListener('click', generatePDF);
+document.getElementById('genImgBtn').addEventListener('click', downloadImages);
+
+const drivePicker = document.getElementById('drivePicker');
+document.getElementById('driveBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  drivePicker.hidden = !drivePicker.hidden;
+});
+drivePicker.addEventListener('click', e => {
+  const btn = e.target.closest('.pick-btn');
+  if (!btn) return;
+  drivePicker.hidden = true;
+  driveUploadFlow(btn.dataset.format);
+});
+document.addEventListener('click', () => { drivePicker.hidden = true; });
 document.getElementById('helpBtn').addEventListener('click',  () => { helpModal.hidden = false; });
 document.getElementById('closeHelp').addEventListener('click', () => { helpModal.hidden = true; });
 helpModal.addEventListener('click', e => { if (e.target === helpModal) helpModal.hidden = true; });
