@@ -14,6 +14,20 @@ const overlay     = document.getElementById('overlay');
 const overlayMsg  = document.getElementById('overlayMsg');
 const toast       = document.getElementById('toast');
 const helpModal   = document.getElementById('helpModal');
+const perPageInput = document.getElementById('perPage');
+
+function getPerPage() {
+  const v = parseInt(perPageInput.value, 10);
+  if (!Number.isFinite(v) || v < 1) return 3;
+  return Math.min(v, 8);
+}
+
+// 依每頁張數動態算出照片列高度，維持在 A4 版面內
+const ROW_BUDGET_MM = 228, ROW_GAP_MM = 2, ROW_MIN_MM = 24, ROW_MAX_MM = 90;
+function getRowHeightMM(perPage) {
+  const raw = ROW_BUDGET_MM / perPage - ROW_GAP_MM;
+  return Math.max(ROW_MIN_MM, Math.min(ROW_MAX_MM, Math.floor(raw)));
+}
 
 // ── Events ────────────────────────────────────────────────────
 photoInput.addEventListener('change', handleFiles);
@@ -22,6 +36,7 @@ clearBtn.addEventListener('click', clearAll);
 genWordBtn.addEventListener('click', generateWord);
 document.getElementById('genPdfBtn').addEventListener('click', generatePDF);
 document.getElementById('genImgBtn').addEventListener('click', downloadImages);
+perPageInput.addEventListener('input', updateUI);
 
 const drivePicker = document.getElementById('drivePicker');
 document.getElementById('driveBtn').addEventListener('click', e => {
@@ -123,7 +138,7 @@ function clearAll() {
 
 function updateUI() {
   const n = state.photos.length;
-  const pages = Math.ceil(n / 3) || 0;
+  const pages = Math.ceil(n / getPerPage()) || 0;
   photoCount.textContent = n ? `${n} 張（${pages} 頁）` : '0 張';
   emptyState.hidden  = n > 0;
   clearBtn.style.display = n ? 'inline-flex' : 'none';
@@ -169,7 +184,6 @@ async function getImageForWord(file) {
 // ── Word generation ───────────────────────────────────────────
 // docx v7: transformation 單位為 px at 96dpi
 const DISP_W     = Math.round(112 * 96 / 25.4); // 423px = 112mm
-const DISP_H_MAX = Math.round(68  * 96 / 25.4); // 257px = 68mm
 const mmToDxa    = mm => Math.round(mm * 1440 / 25.4);
 
 async function buildDoc(school, title) {
@@ -180,8 +194,12 @@ async function buildDoc(school, title) {
     convertMillimetersToTwip,
   } = docx;
 
+  const perPage = getPerPage();
+  const rowHeightMM = getRowHeightMM(perPage);
+  const DISP_H_MAX = Math.round((rowHeightMM - 6) * 96 / 25.4);
+
   const pages = [];
-  for (let i = 0; i < state.photos.length; i += 3) pages.push(state.photos.slice(i, i + 3));
+  for (let i = 0; i < state.photos.length; i += perPage) pages.push(state.photos.slice(i, i + perPage));
 
   const children = [];
 
@@ -202,7 +220,7 @@ async function buildDoc(school, title) {
     for (let ri = 0; ri < pages[pi].length; ri++) {
       const ph = pages[pi][ri];
       const fields = getCardValues(ph.id);
-      overlayMsg.textContent = `處理照片 ${pi * 3 + ri + 1} / ${state.photos.length}...`;
+      overlayMsg.textContent = `處理照片 ${pi * perPage + ri + 1} / ${state.photos.length}...`;
 
       let photoChild;
       try {
@@ -215,7 +233,7 @@ async function buildDoc(school, title) {
       }
 
       rows.push(new TableRow({
-        height: { value: mmToDxa(74), rule: HeightRule.EXACT },
+        height: { value: mmToDxa(rowHeightMM), rule: HeightRule.EXACT },
         children: [
           new TableCell({
             width: { size: mmToDxa(120), type: WidthType.DXA },
@@ -323,7 +341,7 @@ function wrapText(ctx, text, x, y, maxW, lineH) {
   if (line) ctx.fillText(line, x, y);
 }
 
-async function renderPageToCanvas(school, title, pagePhotos) {
+async function renderPageToCanvas(school, title, pagePhotos, rowHeightMM) {
   const S = 2;
   const px = mm => Math.round(mm * 96 / 25.4) * S;
   const cv = document.createElement('canvas');
@@ -345,9 +363,11 @@ async function renderPageToCanvas(school, title, pagePhotos) {
   ctx.fillText(title, cv.width / 2, y + px(4));
   y += px(8);
 
-  const mL = px(18), photoW = px(120), infoW = px(52), gap = px(2), rowH = px(74);
+  const mL = px(18), photoW = px(120), infoW = px(52), gap = px(2), rowH = px(rowHeightMM);
   const txtX = mL + photoW + gap + px(3);
   const fs = px(3.5);
+  const innerH = rowH - px(12);
+  const step = Math.max(px(6), Math.min(px(10), innerH / 3));
 
   for (const ph of pagePhotos) {
     const fields = getCardValues(ph.id);
@@ -371,7 +391,7 @@ async function renderPageToCanvas(school, title, pagePhotos) {
       ctx.fillText(`${label}：`, txtX, ty);
       ctx.font = `${fs}px ${F}`;
       wrapText(ctx, val || '', txtX + lw + px(0.5), ty, infoW - px(6) - lw, px(5.5));
-      ty += px(10);
+      ty += step;
     }
     y += rowH + px(2);
   }
@@ -388,12 +408,14 @@ async function generatePDF() {
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const perPage = getPerPage();
+    const rowHeightMM = getRowHeightMM(perPage);
     const pages = [];
-    for (let i = 0; i < state.photos.length; i += 3) pages.push(state.photos.slice(i, i + 3));
+    for (let i = 0; i < state.photos.length; i += perPage) pages.push(state.photos.slice(i, i + perPage));
     for (let pi = 0; pi < pages.length; pi++) {
       if (pi > 0) doc.addPage();
       overlayMsg.textContent = `PDF 第 ${pi + 1} / ${pages.length} 頁...`;
-      const pageCanvas = await renderPageToCanvas(school, title, pages[pi]);
+      const pageCanvas = await renderPageToCanvas(school, title, pages[pi], rowHeightMM);
       doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
     }
     doc.save(`${title}.pdf`);
@@ -413,8 +435,10 @@ async function downloadImages() {
   const title  = document.getElementById('formTitle').value.trim() || '照片紀錄';
   showOverlay('準備圖片...');
   try {
+    const perPage = getPerPage();
+    const rowHeightMM = getRowHeightMM(perPage);
     const pages = [];
-    for (let i = 0; i < state.photos.length; i += 3) pages.push(state.photos.slice(i, i + 3));
+    for (let i = 0; i < state.photos.length; i += perPage) pages.push(state.photos.slice(i, i + perPage));
 
     const download = (blob, filename) => {
       const a = document.createElement('a');
@@ -428,7 +452,7 @@ async function downloadImages() {
 
     if (pages.length === 1) {
       overlayMsg.textContent = '產生圖片...';
-      const pageCanvas = await renderPageToCanvas(school, title, pages[0]);
+      const pageCanvas = await renderPageToCanvas(school, title, pages[0], rowHeightMM);
       const blob = await new Promise(res => pageCanvas.toBlob(res, 'image/png'));
       download(blob, `${title}.png`);
       showToast('圖片已下載！', 'ok');
@@ -437,7 +461,7 @@ async function downloadImages() {
       const zip = new JSZip();
       for (let pi = 0; pi < pages.length; pi++) {
         overlayMsg.textContent = `圖片 ${pi + 1} / ${pages.length} 頁...`;
-        const pageCanvas = await renderPageToCanvas(school, title, pages[pi]);
+        const pageCanvas = await renderPageToCanvas(school, title, pages[pi], rowHeightMM);
         const blob = await new Promise(res => pageCanvas.toBlob(res, 'image/png'));
         zip.file(`${title}_p${String(pi + 1).padStart(2, '0')}.png`, blob);
       }
@@ -491,6 +515,8 @@ async function performDriveUpload(format) {
   const school     = document.getElementById('schoolName').value.trim() || '學校名稱';
   const title      = document.getElementById('formTitle').value.trim() || '照片紀錄';
   const folderName = document.getElementById('driveFolder').value.trim() || 'LunEduSnap';
+  const perPage = getPerPage();
+  const rowHeightMM = getRowHeightMM(perPage);
   try {
     overlayMsg.textContent = `取得資料夾「${folderName}」...`;
     const folderId = await getOrCreateDriveFolder(folderName);
@@ -501,11 +527,11 @@ async function performDriveUpload(format) {
       const { jsPDF } = window.jspdf;
       const pdfDoc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
       const allPages = [];
-      for (let i = 0; i < state.photos.length; i += 3) allPages.push(state.photos.slice(i, i + 3));
+      for (let i = 0; i < state.photos.length; i += perPage) allPages.push(state.photos.slice(i, i + perPage));
       for (let pi = 0; pi < allPages.length; pi++) {
         if (pi > 0) pdfDoc.addPage();
         overlayMsg.textContent = `PDF 第 ${pi + 1} / ${allPages.length} 頁...`;
-        const pageCanvas = await renderPageToCanvas(school, title, allPages[pi]);
+        const pageCanvas = await renderPageToCanvas(school, title, allPages[pi], rowHeightMM);
         pdfDoc.addImage(pageCanvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
       }
       overlayMsg.textContent = '上傳 PDF...';
@@ -519,7 +545,7 @@ async function performDriveUpload(format) {
       // 圖片
       for (let pi = 0; pi < allPages.length; pi++) {
         overlayMsg.textContent = `上傳圖片 ${pi + 1} / ${allPages.length}...`;
-        const pageCanvas = await renderPageToCanvas(school, title, allPages[pi]);
+        const pageCanvas = await renderPageToCanvas(school, title, allPages[pi], rowHeightMM);
         const blob = await new Promise(res => pageCanvas.toBlob(res, 'image/png'));
         const fileName = allPages.length === 1 ? `${title}.png` : `${title}_p${String(pi + 1).padStart(2, '0')}.png`;
         await uploadFileToDrive(blob, fileName, 'image/png', folderId);
@@ -533,11 +559,11 @@ async function performDriveUpload(format) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
       const pages = [];
-      for (let i = 0; i < state.photos.length; i += 3) pages.push(state.photos.slice(i, i + 3));
+      for (let i = 0; i < state.photos.length; i += perPage) pages.push(state.photos.slice(i, i + perPage));
       for (let pi = 0; pi < pages.length; pi++) {
         if (pi > 0) doc.addPage();
         overlayMsg.textContent = `PDF 第 ${pi + 1} / ${pages.length} 頁...`;
-        const pageCanvas = await renderPageToCanvas(school, title, pages[pi]);
+        const pageCanvas = await renderPageToCanvas(school, title, pages[pi], rowHeightMM);
         doc.addImage(pageCanvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297);
       }
       overlayMsg.textContent = '上傳 PDF...';
@@ -554,10 +580,10 @@ async function performDriveUpload(format) {
 
     } else if (format === 'img') {
       const pages = [];
-      for (let i = 0; i < state.photos.length; i += 3) pages.push(state.photos.slice(i, i + 3));
+      for (let i = 0; i < state.photos.length; i += perPage) pages.push(state.photos.slice(i, i + perPage));
       for (let pi = 0; pi < pages.length; pi++) {
         overlayMsg.textContent = `上傳圖片 ${pi + 1} / ${pages.length}...`;
-        const pageCanvas = await renderPageToCanvas(school, title, pages[pi]);
+        const pageCanvas = await renderPageToCanvas(school, title, pages[pi], rowHeightMM);
         const blob = await new Promise(res => pageCanvas.toBlob(res, 'image/png'));
         const fileName = pages.length === 1 ? `${title}.png` : `${title}_p${String(pi + 1).padStart(2, '0')}.png`;
         await uploadFileToDrive(blob, fileName, 'image/png', folderId);

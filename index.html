@@ -15,12 +15,14 @@
   <header class="site-header">
     <div class="header-inner">
       <div class="logo-wrap">
-        <img src="logo.png" alt="鴻綸科技 Google for Education Partner" class="site-logo">
+        <div class="logo-badge">
+          <img src="logo.png" alt="鴻綸科技 Google for Education Partner" class="site-logo">
+        </div>
         <span class="header-copy">© 2026 鴻綸科技・Steve Shen（Jul. 2026）</span>
       </div>
       <button class="help-btn" id="helpBtn" aria-label="使用說明">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        使用說明
+        <span class="help-btn-label">使用說明</span>
       </button>
     </div>
   </header>
@@ -31,7 +33,7 @@
       <div class="hero-accent"></div>
       <div class="hero-text">
         <h1>LunEduSnap 校園照片系統</h1>
-        <p>自動排版 A4 表格・每頁 3 張照片・一鍵下載文件</p>
+        <p>自動排版 A4 表格・每頁張數可自訂・一鍵下載文件</p>
       </div>
     </div>
 
@@ -53,6 +55,11 @@
           <label for="driveFolder">Drive 資料夾</label>
           <input type="text" id="driveFolder" value="LunEduSnap" placeholder="例：2026 校外教學">
           <span class="field-note">上傳至 Google Drive 時使用的資料夾名稱</span>
+        </div>
+        <div class="field">
+          <label for="perPage">每頁張數</label>
+          <input type="number" id="perPage" min="1" max="8" value="3">
+          <span class="field-note">每頁排列幾張照片，超過自動分頁</span>
         </div>
       </div>
     </section>
@@ -139,7 +146,7 @@
       <div class="modal-bd">
         <div class="step"><div class="step-n">1</div><div><strong>填入基本資料</strong><p>學校名稱顯示於表單頁首，表單標題同時作為檔案名稱。Drive 資料夾指定上傳目的地，預設為 LunEduSnap，不存在時自動建立。</p></div></div>
         <div class="step"><div class="step-n">2</div><div><strong>新增照片</strong><p>點「新增照片」可一次多選，手機用戶點「手機拍照」直接啟動相機。日期自動從照片 EXIF 讀取，無 EXIF 則使用檔案修改日期。</p></div></div>
-        <div class="step"><div class="step-n">3</div><div><strong>填寫各欄位</strong><p>為每張照片填入地點與說明，日期可手動修改。每頁排列 3 張，多張時自動分頁。</p></div></div>
+        <div class="step"><div class="step-n">3</div><div><strong>填寫各欄位</strong><p>為每張照片填入地點與說明，日期可手動修改。可在「文件設定」調整每頁張數，多張時自動分頁。</p></div></div>
         <div class="step"><div class="step-n">4</div><div><strong>本機下載（無需授權）</strong><p>點「文件」下載 .docx 格式，「PDF」下載固定版面，「圖片」將每頁轉為 PNG 下載。</p></div></div>
         <div class="step"><div class="step-n">5</div><div><strong>上傳至 Google Drive（需申請授權）</strong><p>點「上傳至 Google Drive」選擇格式後，完成 Google 帳號授權即可上傳。若出現未驗證警告，點進階後繼續即可。請聯絡管理員申請使用權限。</p></div></div>
         <div class="notice">
